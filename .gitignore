@@ -5,3 +5,10 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+# Playwright HTML reports
+/playwright-report/
+
+# Environment files
+.env
+.env.*
+!.env.example

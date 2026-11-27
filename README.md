@@ -170,7 +170,28 @@ Open the report using:
 ```bash
 npx playwright show-report
 ```
+## Local Flaky Test Reproduction
 
+### Objective
+To reproduce intermittent Playwright test failures locally by executing tests repeatedly and detecting flaky retries.
+
+### Command Executed
+
+```bash
+npx playwright test tests/ui/flaky-tests.spec.ts --project=chromium --repeat-each=10 --retries=1 --fail-on-flaky-tests --reporter=list
+```
+
+### Execution Results
+
+| Metric | Result |
+|---|---:|
+| Total executions | 10 |
+| Passed | 10 |
+| Failed | 0 |
+| Flaky retries | 0 |
+
+### Conclusion
+Successfully executed the flaky test 10 consecutive times locally. All executions passed without requiring retries, indicating stable test behavior after fixing the timing-related synchronization issue.
 ## 12. Conclusion
 
 The project delivers a 35-test automated regression suite covering critical UI workflows and REST API functionality.
