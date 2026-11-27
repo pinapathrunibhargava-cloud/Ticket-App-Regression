@@ -14,15 +14,38 @@ test.describe('Ticket App - UI Regression Suite', () => {
   });
 
   test('TC02 - Support Staff Dashboard Verification @smoke', async ({ ticketPage, page }) => {
-    await ticketPage.openApplication();
-    await ticketPage.switchPersona('bob.support');
+  await ticketPage.openApplication();
 
-    await expect(page.getByText('All Support Tickets Queue')).toBeVisible();
+  // Create a ticket as Charlie
+  await ticketPage.switchPersona('charlie.employee');
 
-    await expect(
-      page.getByText('charlie.employee').first()
-    ).toBeVisible();
-  });
+  const ticketTitle = `TC02 Support Dashboard ${Date.now()}`;
+
+  await ticketPage.openCreateTicketForm('table');
+
+  await ticketPage.createTicket(
+    ticketTitle,
+    'Testing support staff dashboard visibility.'
+  );
+
+  // Return to the ticket queue
+  await page.getByRole('button', {
+    name: '← Back to Ticket Queue',
+  }).click();
+
+  // Switch to Support Staff
+  await ticketPage.switchPersona('bob.support');
+
+  // Verify support dashboard
+  await expect(
+    page.getByText('All Support Tickets Queue')
+  ).toBeVisible();
+
+  // Verify Charlie's ticket appears
+  await expect(
+    page.getByText(ticketTitle)
+  ).toBeVisible();
+});
 
   // test('TC05 - Employee Cannot Access Support Staff Status Controls', async ({ ticketPage, page }) => {
   //   await ticketPage.openApplication();
@@ -376,12 +399,45 @@ test('TC25 - Invalid Status Transitions', async ({ ticketPage, page }) => {
 
 
 test('TC28 - Employee Cannot Comment on Another Employee Ticket', async ({ ticketPage, page }) => {
-
   await ticketPage.openApplication();
 
-  // Charlie attempts to comment on Alice's ticket #75
+  // Step 1: Alice creates a ticket through the UI
+  await ticketPage.switchPersona('alice.employee');
+
+  const ticketTitle = `TC28 Authorization Test ${Date.now()}`;
+
+  await ticketPage.openCreateTicketForm('table');
+
+  await ticketPage.createTicket(
+    ticketTitle,
+    'Testing unauthorized comment access between employees.'
+  );
+
+  // Step 2: Retrieve the newly created ticket ID
+  const ticketResponse = await page.request.get(
+    'http://localhost:8080/api/tickets',
+    {
+      headers: {
+        'X-User-Id': 'alice.employee',
+        'X-User-Role': 'EMPLOYEE',
+      },
+    }
+  );
+
+  expect(ticketResponse.status()).toBe(200);
+
+  const tickets = await ticketResponse.json();
+
+  const aliceTicket = tickets.find(
+    (ticket: { title: string; id: number }) =>
+      ticket.title === ticketTitle
+  );
+
+  expect(aliceTicket).toBeTruthy();
+
+  // Step 3: Charlie attempts to comment on Alice's ticket
   const response = await page.request.post(
-    'http://localhost:8080/api/tickets/75/comments',
+    `http://localhost:8080/api/tickets/${aliceTicket.id}/comments`,
     {
       headers: {
         'X-User-Id': 'charlie.employee',
@@ -393,9 +449,10 @@ test('TC28 - Employee Cannot Comment on Another Employee Ticket', async ({ ticke
     }
   );
 
-  // Backend must reject the request
+  // Step 4: Backend must reject unauthorized access
   expect(response.status()).toBe(403);
 });
+
 
 
 // TC03 - Employee Can View Own Ticket Details
