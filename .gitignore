@@ -12,3 +12,7 @@ node_modules/
 .env
 .env.*
 !.env.example
+
+# Allure reports
+/allure-results/
+/allure-report/

@@ -7,9 +7,12 @@ on:
   pull_request:
     branches: [main]
 
+  schedule:
+    - cron: '30 1 * * *'
+
 jobs:
   playwright-tests:
-    timeout-minutes: 30
+    timeout-minutes: 10
     runs-on: ubuntu-latest
 
     env:
@@ -125,12 +128,12 @@ jobs:
       # 13. Run smoke tests on pull requests
       - name: Run Smoke Tests
         if: github.event_name == 'pull_request'
-        run: npx playwright test --project=chromium --grep "@smoke"
+        run: npx playwright test --project=chromium --grep "@smoke" --retries=1 --fail-on-flaky-tests
 
       # 14. Run complete Chromium suite on push
       - name: Run Regression Tests
-        if: github.event_name == 'push'
-        run: npx playwright test --project=chromium
+        if: github.event_name == 'push' || github.event_name == 'schedule'
+        run: npx playwright test --project=chromium --retries=1 --fail-on-flaky-tests
 
       # 15. Upload HTML report
       - name: Upload Playwright Report
@@ -142,7 +145,19 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
-      # 16. Display application logs if tests fail
+      # 16. Upload failure artifacts, traces and Allure results
+      - name: Upload Playwright Failure Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failure-artifacts
+          path: |
+            test-results/
+            allure-results/
+          retention-days: 14
+          if-no-files-found: ignore
+
+      # 17. Display application logs if tests fail
       - name: Display Application Logs
         if: failure()
         run: |

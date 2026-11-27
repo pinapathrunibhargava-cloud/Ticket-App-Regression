@@ -412,6 +412,9 @@ test('TC28 - Employee Cannot Comment on Another Employee Ticket', async ({ ticke
     ticketTitle,
     'Testing unauthorized comment access between employees.'
   );
+  await expect(
+  page.getByText(/created successfully/i)
+).toBeVisible({ timeout: 10000 });
 
   // Step 2: Retrieve the newly created ticket ID
   const ticketResponse = await page.request.get(
